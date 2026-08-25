@@ -1,0 +1,15 @@
+# Version floors chosen so pip cannot resolve to a release that predates
+# Python 3.14 wheels and silently fall back to building from source.
+pandas>=2.3
+duckdb>=1.4.3
+pyarrow>=25.0
+openpyxl>=3.1
+fastapi>=0.115
+uvicorn>=0.34
+pytest>=8.0
+httpx>=0.27
+
+# Deliberately NOT uvicorn[standard]. Those extras (uvloop, httptools,
+# watchfiles) are C/Rust builds that lag new Python releases, and they buy
+# nothing for a local single-user server. Plain uvicorn is pure-Python-safe
+# and --reload still works via the stat-based fallback poller.
