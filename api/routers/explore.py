@@ -183,9 +183,10 @@ def profit_ath():
     """How much of the universe is earning more than it ever has.
 
     Trailing twelve months is the rolling-year measure: it updates every
-    quarter, where reported annual PAT moves only once a year and can describe
-    a period that closed up to four quarters ago. TTM is therefore the yearly
-    truth here, and annual is carried as a reference figure only.
+    quarter, where reported annual PAT moves only once a year. TTM is measured
+    against the reported financial-year series -- the comparison run is
+    [TTM, FY1..FY15] -- so a record means the live trailing year has beaten
+    every completed year the company has reported.
 
     "Both" means TTM and the latest quarter together -- a record year that is
     still setting records, rather than a record year already rolling over.
@@ -200,13 +201,13 @@ def profit_ath():
                    THEN 1 ELSE 0 END) AS ttm_only,
           sum(CASE WHEN "pat_q_at_ath" AND NOT "pat_ttm_at_ath"
                    THEN 1 ELSE 0 END) AS q_only,
-          sum(CASE WHEN NOT "pat_ttm_at_ath" AND "pat_ttm_vs_peak_pct" > -10
+          sum(CASE WHEN NOT "pat_ttm_at_ath" AND "pat_ttm_vs_fy_peak_pct" > -10
                    THEN 1 ELSE 0 END) AS ttm_within_10,
-          sum(CASE WHEN NOT "pat_ttm_at_ath" AND "pat_ttm_vs_peak_pct" <= -10
-                   AND "pat_ttm_vs_peak_pct" > -25 THEN 1 ELSE 0 END) AS ttm_10_25,
-          sum(CASE WHEN NOT "pat_ttm_at_ath" AND "pat_ttm_vs_peak_pct" <= -25
-                   AND "pat_ttm_vs_peak_pct" > -50 THEN 1 ELSE 0 END) AS ttm_25_50,
-          sum(CASE WHEN "pat_ttm_vs_peak_pct" <= -50 THEN 1 ELSE 0 END)
+          sum(CASE WHEN NOT "pat_ttm_at_ath" AND "pat_ttm_vs_fy_peak_pct" <= -10
+                   AND "pat_ttm_vs_fy_peak_pct" > -25 THEN 1 ELSE 0 END) AS ttm_10_25,
+          sum(CASE WHEN NOT "pat_ttm_at_ath" AND "pat_ttm_vs_fy_peak_pct" <= -25
+                   AND "pat_ttm_vs_fy_peak_pct" > -50 THEN 1 ELSE 0 END) AS ttm_25_50,
+          sum(CASE WHEN "pat_ttm_vs_fy_peak_pct" <= -50 THEN 1 ELSE 0 END)
             AS ttm_below_50
         FROM companies
     """) or {}
@@ -436,27 +437,30 @@ def pulse_drawdown():
     Both axes are a distance from an all-time high -- one in profit, one in
     price. Companies far apart on the two are where the tape and the
     fundamentals disagree.
+
+    The earnings axis is TTM against the highest reported financial year, so a
+    company at a record sits slightly ABOVE zero rather than exactly at it.
     """
     pts = db.query("""
         SELECT "symbol", "cap_tier", "sector",
-               "pat_ttm_vs_peak_pct" AS earnings, "dist_ath_pct" AS price,
+               "pat_ttm_vs_fy_peak_pct" AS earnings, "dist_ath_pct" AS price,
                "market_cap"
         FROM companies
-        WHERE "pat_ttm_vs_peak_pct" IS NOT NULL AND "dist_ath_pct" IS NOT NULL
-          AND "pat_ttm_vs_peak_pct" > -150
+        WHERE "pat_ttm_vs_fy_peak_pct" IS NOT NULL AND "dist_ath_pct" IS NOT NULL
+          AND "pat_ttm_vs_fy_peak_pct" > -150
     """)
     quads = db.query_one("""
         SELECT
-          sum(CASE WHEN "pat_ttm_vs_peak_pct" > -10 AND "dist_ath_pct" > -20
+          sum(CASE WHEN "pat_ttm_vs_fy_peak_pct" > -10 AND "dist_ath_pct" > -20
                    THEN 1 ELSE 0 END) AS both_near_high,
-          sum(CASE WHEN "pat_ttm_vs_peak_pct" > -10 AND "dist_ath_pct" <= -20
+          sum(CASE WHEN "pat_ttm_vs_fy_peak_pct" > -10 AND "dist_ath_pct" <= -20
                    THEN 1 ELSE 0 END) AS earnings_high_price_low,
-          sum(CASE WHEN "pat_ttm_vs_peak_pct" <= -10 AND "dist_ath_pct" > -20
+          sum(CASE WHEN "pat_ttm_vs_fy_peak_pct" <= -10 AND "dist_ath_pct" > -20
                    THEN 1 ELSE 0 END) AS price_high_earnings_low,
-          sum(CASE WHEN "pat_ttm_vs_peak_pct" <= -10 AND "dist_ath_pct" <= -20
+          sum(CASE WHEN "pat_ttm_vs_fy_peak_pct" <= -10 AND "dist_ath_pct" <= -20
                    THEN 1 ELSE 0 END) AS both_low
         FROM companies
-        WHERE "pat_ttm_vs_peak_pct" IS NOT NULL AND "dist_ath_pct" IS NOT NULL
+        WHERE "pat_ttm_vs_fy_peak_pct" IS NOT NULL AND "dist_ath_pct" IS NOT NULL
     """) or {}
     return {"points": pts, "quadrants": quads, "n": len(pts)}
 

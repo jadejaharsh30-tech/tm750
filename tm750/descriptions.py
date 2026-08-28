@@ -159,9 +159,10 @@ CURATED: dict[str, str] = {
                       "of a possible 48.",
     "fy_available": "Financial years of profit history held, out of a "
                     "possible 15.",
-    "pat_ttm_at_ath": "Trailing twelve-month profit is the highest across "
-                      "every rolling four-quarter window on record. The "
-                      "rolling-year measure, so it updates each quarter.",
+    "pat_ttm_at_ath": "Trailing twelve-month profit is at or above every "
+                      "reported financial year on record. TTM is computed once "
+                      "from the last four quarters and compared against "
+                      "FY1..FY15, so the comparison run is [TTM, FY1..FY15].",
     "pat_q_at_ath": "The latest single quarter is the highest on record. "
                     "Noisier than the TTM measure, which absorbs seasonality.",
     "pat_fy_at_ath": "The latest reported financial year is the highest on "
@@ -169,10 +170,14 @@ CURATED: dict[str, str] = {
                      "describe a period that closed up to four quarters ago.",
     "pat_both_at_ath": "Trailing twelve-month and latest-quarter profit are "
                        "both at record highs -- a record year that is still "
-                       "setting records, rather than one already rolling over.",
-    "pat_ttm_vs_peak_pct": "Trailing twelve-month profit against its own peak. "
-                           "An earnings drawdown, directly analogous to a "
-                           "price drawdown.",
+                       "setting records, rather than one already rolling over. "
+                       "TTM is measured against reported financial years, the "
+                       "quarter against every quarter on record.",
+    "pat_ttm_vs_fy_peak_pct": "Trailing twelve-month profit against the best "
+                              "reported financial year. An earnings drawdown, "
+                              "directly analogous to a price drawdown. Positive "
+                              "where the trailing year has beaten every "
+                              "completed year.",
     "pat_vs_peak_pct": "Latest annual profit against its own best year.",
     "pat_q_vs_peak_pct": "Latest quarter against the best quarter on record.",
 
@@ -338,8 +343,20 @@ CURATED: dict[str, str] = {
                     "four-quarter window, used as the growth base.",
     "pat_ttm_growth_pct": "Trailing twelve-month profit against the previous "
                           "twelve months.",
-    "pat_ttm_peak": "Highest trailing twelve-month profit across every rolling "
-                    "four-quarter window on record.",
+    "pat_ttm_peak_rolling": "Highest trailing twelve-month profit across every "
+                            "rolling four-quarter window on record. Descriptive "
+                            "only -- the record test uses reported financial "
+                            "years, not synthetic windows.",
+    "pat_ttm_vs_peak_rolling_pct": "Trailing twelve-month profit against the "
+                                   "highest rolling four-quarter window. "
+                                   "Descriptive counterpart to "
+                                   "pat_ttm_vs_fy_peak_pct.",
+    "pat_ttm_at_ath_rolling": "Trailing twelve-month profit is the highest "
+                              "across every rolling four-quarter window. "
+                              "Descriptive only: a window spanning two "
+                              "part-years is not a period the company ever "
+                              "reported, so this never decides "
+                              "pat_both_at_ath.",
     "pat_peak_q": "Highest single quarter of profit on record.",
     "pat_peak_fy": "Highest financial year of profit on record.",
     "pat_fy1": "Profit after tax in the latest reported financial year.",

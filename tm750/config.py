@@ -289,7 +289,11 @@ GROUP_RULES: dict[str, list[tuple[str, list[str]]]] = {
         ("Balances", [r"^total_", r"^cash_and", r"_debt_annual$", r"^net_debt"]),
     ],
     "History": [
-        ("Records", [r"_at_ath$", r"_peak", r"vs_peak"]),
+        # Unanchored `_at_ath` so descriptive variants such as
+        # pat_ttm_at_ath_rolling still group as records. Anchored to the end
+        # it would fall through to the `^pat_ttm` rule below and land under
+        # "Trailing twelve months", which is the wrong shelf for a record.
+        ("Records", [r"_at_ath", r"_peak", r"vs_peak"]),
         ("Trailing twelve months", [r"^pat_ttm"]),
         ("Quarterly", [
             r"_q$", r"_q_", r"^qtrs_", r"_qtrs$", r"_qtr_", r"^pat_yoy_q",
@@ -360,3 +364,13 @@ GROUP_RULES: dict[str, list[tuple[str, list[str]]]] = {
 
 # Applied when a segment has no rules, or nothing matched.
 DEFAULT_GROUP = "Other"
+
+
+# ---------------------------------------------------------------- scanner
+SCANNER_BATCH_SIZE = 50
+RS_WINDOW = 211
+RS_TOLERANCE = 0.9999
+RS_BENCHMARK = "^CRSLDX"
+DEAD_STATUSES = {"Delisted", "Suspended", "InActive", "Amalgamation"}
+PROFIT_API_QUARTERLY = "https://script.google.com/macros/s/AKfycbyS3U6Z7htU-L3gl7Eqvt81ykCyvruZkLrDSw75tJcjcBYxs33k8PAGNTSxSMLQ7KLo/exec"   # paste your Apps Script URL
+PROFIT_API_YEARLY = "https://script.google.com/macros/s/AKfycbwCvDTWq7-3wYC7ac7zP9YwqdCb8CGV2wtftqs-vQWfsWQgYPzBDl9qKkM5wBnOjg55tw/exec"      # paste your Apps Script URL

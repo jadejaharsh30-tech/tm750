@@ -1,0 +1,112 @@
+/* Scanner-only styles. Everything else reuses the app's existing classes
+   (module, card, pad, eyebrow, btn, num, mono, subtle, banner) so this module
+   inherits the rest of the app's look rather than restating it. */
+
+.scan-bar, .mdb-bar, .uni-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.scan-msg { margin-left: auto; font-size: 12px; }
+
+.btn.primary { background: var(--accent, #2f81f7); color: #fff; border: none; }
+.btn.warn { background: var(--warn, #b8791f); color: #fff; border: none; }
+.btn.sm { padding: 2px 8px; font-size: 12px; margin-left: 4px; }
+.btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+/* Progress ------------------------------------------------------------- */
+.scan-progress {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-subtle, #1b1f24);
+  margin-bottom: 14px;
+}
+.scan-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--ok, #2ea043);
+  transition: width 0.35s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan-progress-fill { transition: none; }
+}
+.scan-progress-pct {
+  position: absolute; right: 0; top: -18px; font-size: 11px;
+  color: var(--text-subtle, #8b949e);
+}
+
+.scan-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin: 16px 0 6px;
+}
+
+/* Table ---------------------------------------------------------------- */
+.stable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.stable th {
+  text-align: left; font-weight: 500; font-size: 11px;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--text-subtle, #8b949e);
+  padding: 6px 8px; border-bottom: 1px solid var(--border, #30363d);
+}
+.stable td { padding: 6px 8px; border-bottom: 1px solid var(--border-faint, #21262d); }
+.stable th.r, .stable td.r { text-align: right; }
+.stable th.c, .stable td.c { text-align: center; }
+.stable th.sel, .stable td.sel { width: 28px; text-align: center; }
+.stable tbody tr:hover { background: var(--bg-hover, #161b22); }
+.stable tr.off { opacity: 0.45; }
+.stable td.num, .stable td .num { font-variant-numeric: tabular-nums; }
+
+/* Flags ---------------------------------------------------------------- */
+.sflag {
+  display: inline-block; min-width: 20px; padding: 1px 6px;
+  border-radius: 3px; font-size: 11px; font-weight: 600;
+}
+.sflag.y { background: rgba(46, 160, 67, 0.18); color: var(--ok, #3fb950); }
+.sflag.n { background: rgba(248, 81, 73, 0.15); color: var(--bad, #f85149); }
+.sflag.na { background: transparent; color: var(--text-subtle, #6e7681); }
+
+/* Profit verdict. Three states -- no_data must read as absent, never as a
+   failed test, so it gets no colour at all. */
+.sverdict {
+  display: inline-block; padding: 1px 8px; border-radius: 3px;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+.sverdict.ok { background: rgba(46, 160, 67, 0.18); color: var(--ok, #3fb950); }
+.sverdict.no { background: rgba(248, 81, 73, 0.13); color: var(--bad, #f85149); }
+.sverdict.none { background: transparent; color: var(--text-subtle, #6e7681); }
+.sstale {
+  margin-left: 4px; color: var(--warn, #d29922); font-weight: 700; cursor: help;
+}
+
+/* Manage database ------------------------------------------------------ */
+.mdb-search, .mdb-input {
+  background: var(--bg-input, #0d1117);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 4px; padding: 5px 8px; font-size: 13px;
+  color: inherit;
+}
+.mdb-search { min-width: 220px; }
+.mdb-input { width: 130px; }
+.mdb-events td { background: var(--bg-subtle, #0d1117); }
+
+.warn-card { border-left: 3px solid var(--warn, #d29922); }
+.danger-card { border-left: 3px solid var(--bad, #f85149); margin-top: 14px; }
+.btn.danger { background: var(--bad, #da3633); color: #fff; border: none; }
+.mdb-checkbox { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
+
+.uni > .card { margin-bottom: 14px; }
+
+:where(.scan, .mdb, .uni) :focus-visible {
+  outline: 2px solid var(--accent, #2f81f7);
+  outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+  .stable { font-size: 12px; }
+  .stable th, .stable td { padding: 5px 4px; }
+  .scan-msg { margin-left: 0; width: 100%; }
+}
