@@ -1,0 +1,28 @@
+# Virtual env
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Databases (regenerable via pipeline)
+*.duckdb
+*.duckdb.wal
+
+# Data pipeline storage (regenerable from source)
+data/archive/
+data/curated/
+data/raw/
+
+# Frontend
+web/node_modules/
+web/dist/
+
+# Env/secrets
+.env
+
+# OS junk
+.DS_Store
+Thumbs.db
