@@ -101,6 +101,53 @@ const get = (path) => {
   return dedup(full, () => request(full));
 };
 
+/* File downloads cannot go through request(): that helper parses every
+   response as JSON and dedups by path, neither of which is right for a
+   binary body the user is expecting to land in their Downloads folder. */
+function filenameFrom(header) {
+  if (!header) return null;
+  const m = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(header);
+  if (!m) return null;
+  try { return decodeURIComponent(m[1]); } catch { return m[1]; }
+}
+
+async function download(path, body, fallbackName) {
+  const full = withAsOf(path);
+  let res;
+  try {
+    res = await fetch(`${BASE}${full}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    throw new ApiError(
+      'Cannot reach the API. Is uvicorn running on port 8000?', 0, String(err));
+  }
+
+  if (!res.ok) {
+    let detail = null;
+    try { detail = (await res.json()).detail; } catch { /* non-JSON error */ }
+    throw new ApiError(errorMessage(res.status, detail), res.status, detail);
+  }
+
+  const blob = await res.blob();
+  const name = filenameFrom(res.headers.get('Content-Disposition'))
+    ?? fallbackName;
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Revoking straight away cancels the download in some browsers, so the
+  // object URL is held briefly rather than released on the next line.
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  return name;
+}
+
 export const api = {
   health:     ()          => get('/health'),
   catalog:    ()          => get('/meta/catalog'),
@@ -152,6 +199,8 @@ export const api = {
   screen:     (body)      =>
     request(withAsOf('/screen'),
             { method: 'POST', body: JSON.stringify(body) }),
+  exportXlsx: (body)      =>
+    download('/export/xlsx', body, 'tm750-export.xlsx'),
   compare:    (symbols, segments = null) =>
     request(withAsOf('/compare'), { method: 'POST',
       body: JSON.stringify({ symbols, ...(segments ? { segments } : {}) }) }),

@@ -1451,3 +1451,26 @@
   padding-top: 4px; border-top: 1px solid var(--border); font-size: 9px;
 }
 .info-meta code { font-size: 9px; }
+
+/* ---- Excel export button ------------------------------------------- */
+/* Sits in the header action row; the error text appears beside it rather
+   than replacing it, so a failed export never hides the retry. */
+.exportbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.exportbtn .btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.export-err {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--down, #c0392b);
+}
