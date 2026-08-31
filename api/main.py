@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import db
 from .routers import (admin, data, explore, export, history, meta,
-                      scanner)
+                      profit, scanner)
 from tm750.scanner import store as scanner_store
 
 @asynccontextmanager
@@ -44,6 +44,7 @@ app.include_router(meta.router)
 app.include_router(data.router)
 app.include_router(explore.router)
 app.include_router(export.router)
+app.include_router(profit.router)
 app.include_router(history.router)
 app.include_router(admin.router)
 app.include_router(scanner.router)

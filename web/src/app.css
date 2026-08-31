@@ -1474,3 +1474,69 @@
   font-size: 12px;
   color: var(--down, #c0392b);
 }
+
+/* ---- global profit feed ------------------------------------------- */
+/* The dot is the whole point of putting this in the header: fresh, stale
+   or never-fetched readable without opening a page. */
+.profitfetch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn.profitbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pf-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 7px;
+  background: var(--muted, #8a94a0);
+}
+.pf-dot.fresh { background: var(--up, #16a765); }
+.pf-dot.stale { background: #e0a020; }
+.pf-dot.never { background: var(--down, #e0503f); }
+.pf-dot.busy  { background: var(--muted, #8a94a0); animation: pf-pulse 1s infinite; }
+
+@keyframes pf-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+.pf-flash {
+  font-size: 12px;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pf-flash.ok  { color: var(--up, #16a765); }
+.pf-flash.bad { color: var(--down, #e0503f); }
+
+.btn.small { padding: 3px 9px; font-size: 12px; }
+
+/* ---- profit coverage panel ----------------------------------------- */
+.covblock { margin-top: 14px; }
+
+.covhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 6px;
+}
+
+.covlist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.covchip {
+  border: 1px solid var(--line, #d8dee4);
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 12px;
+}

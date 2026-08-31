@@ -199,6 +199,12 @@ export const api = {
   screen:     (body)      =>
     request(withAsOf('/screen'),
             { method: 'POST', body: JSON.stringify(body) }),
+  // ---- profit feed (global: feeds both the platform build and the scanner)
+  profitStatus: ()        => get('/profit/status'),
+  profitCoverage: ()      => get('/profit/coverage'),
+  profitFetch: ()         =>
+    request('/profit/fetch', { method: 'POST', body: '{}' }),
+
   exportXlsx: (body)      =>
     download('/export/xlsx', body, 'tm750-export.xlsx'),
   compare:    (symbols, segments = null) =>

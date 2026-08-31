@@ -59,6 +59,17 @@ class ExportRequest(ScreenRequest):
     context: str | None = Field(None, max_length=200)
 
 
+def _safe_sheet_title(title: str) -> str:
+    """Excel forbids / \\ ? * : [ ] in a sheet name and caps it at 31 chars,
+    and openpyxl raises rather than cleaning. Industry names arrive straight
+    from TradingView and routinely contain slashes and colons
+    ("Electronics/Appliances", "Food: Specialty/Candy"), so every title is
+    scrubbed here rather than at each call site."""
+    cleaned = re.sub(r"[\\/?*:\[\]]", " ", title or "")
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()[:31]
+    return cleaned or "Data"
+
+
 def _safe_filename(stem: str) -> str:
     """Strip anything a filesystem or a Content-Disposition header would
     argue with. A blank result falls back rather than producing '.xlsx'."""
@@ -157,7 +168,7 @@ def build_workbook(rows: list[dict], specs: list[dict], *,
     exercised directly with hand-made rows."""
     wb = Workbook()
     ws = wb.active
-    ws.title = (sheet_title or "Data")[:31]
+    ws.title = _safe_sheet_title(sheet_title)
 
     ws.append([_header(s) for s in specs])
     for c in range(1, len(specs) + 1):
