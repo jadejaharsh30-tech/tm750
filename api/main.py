@@ -11,7 +11,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import db
-from .routers import admin, data, explore, history, meta
+from .routers import admin, data, explore, history, meta, scanner
+from tm750.scanner import store as scanner_store
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -19,6 +20,7 @@ async def lifespan(_app: FastAPI):
     info = db.warm_caches()
     print(f"  tm750: {info['columns']} columns, {info['segments']} segments, "
           f"snapshot {db.snapshots()[-1]}")
+    scanner_store.init_schema()
     yield
 
 
@@ -42,6 +44,7 @@ app.include_router(data.router)
 app.include_router(explore.router)
 app.include_router(history.router)
 app.include_router(admin.router)
+app.include_router(scanner.router)
 
 
 @app.get("/health")

@@ -77,14 +77,21 @@ def build(write: bool = True, snapshot_date: str | None = None,
 
     # Both horizons at a record simultaneously.
     #
-    # The pair is TTM and the latest quarter, not annual and TTM. Reported
-    # annual PAT only moves once a year, so for up to four quarters it
-    # describes a period that has already closed; TTM is the rolling-year
-    # figure that actually updates, and the two coincide only at financial
-    # year end. TTM is therefore the yearly truth here, and the latest quarter
-    # is the short horizon confirming the trend has not just rolled over.
-    df["pat_both_at_ath"] = (df["pat_ttm_at_ath"].fillna(False)
-                             & df["pat_q_at_ath"].fillna(False))
+    # TTM is measured against the REPORTED financial-year series, not against
+    # rolling four-quarter windows. The comparison run is [TTM, FY1, ... FY15]:
+    # the live rolling year against every completed year the company has
+    # reported. A synthetic window spanning two part-years is not a period the
+    # company ever reported, so a peak found there is an artefact of the
+    # window rather than a record the business set.
+    #
+    # The latest quarter is the short horizon confirming the trend has not
+    # just rolled over. Both must hold.
+    #
+    # Computed by history.profit_at_ath, which tm750/scanner/profit.py also
+    # calls -- one implementation, so the Scanner and Pulse can never disagree.
+    df = df.merge(history.profit_at_ath(src["profit_q"], src["profit_y"]),
+                  on="isin", how="left")
+    df["pat_both_at_ath"] = df["pat_both_at_ath"].fillna(False)
     assert len(df) == EXPECTED_UNIVERSE, f"row count drifted: {len(df)}"
     # DuckDB derives this from the Hive partition path when reading the
     # parquet, so it must exist in the catalog or the two disagree by one.
@@ -142,7 +149,9 @@ def build(write: bool = True, snapshot_date: str | None = None,
             source_map[c] = "derived"
         elif c in set(sc.columns):
             source_map[c] = "screener"
-        elif c in set(q_sum.columns) | set(y_sum.columns):
+        elif c in set(q_sum.columns) | set(y_sum.columns) | {
+                "pat_ttm_at_ath", "pat_ttm_vs_fy_peak_pct",
+                "pat_both_at_ath"}:
             source_map[c] = "profit_history"
         elif c.startswith(("idx_", "is_", "cap_tier", "index_count")):
             source_map[c] = "derived"
@@ -171,19 +180,35 @@ def build(write: bool = True, snapshot_date: str | None = None,
                             "compound rate across a sign change is undefined.",
         "snapshot_date": "As-of date of this snapshot. Also derived by DuckDB "
                          "from the Hive partition path.",
-        "pat_ttm_at_ath": "Trailing-twelve-month PAT is at its highest across "
-                          "all rolling 4-quarter windows in the available "
-                          "history. Requires the peak itself to be positive.",
+        "pat_ttm_at_ath": "Trailing-twelve-month PAT (QL1..QL4, computed once) "
+                          "is at or above every reported financial year in the "
+                          "available history. The comparison series is [TTM, "
+                          "FY1..FY15]. Requires the peak itself to be positive.",
+        "pat_ttm_vs_fy_peak_pct": "TTM PAT against the highest reported "
+                                  "financial year -- an earnings drawdown "
+                                  "measured on reported periods.",
+        "pat_ttm_at_ath_rolling": "Descriptive only. TTM at its highest across "
+                                  "all rolling 4-quarter windows. NOT used for "
+                                  "pat_both_at_ath: a window spanning two "
+                                  "part-years is not a period the company ever "
+                                  "reported.",
+        "pat_ttm_peak_rolling": "Highest rolling 4-quarter PAT sum on record. "
+                                "Descriptive counterpart to pat_peak_fy.",
+        "pat_ttm_vs_peak_rolling_pct": "TTM against the rolling-window peak. "
+                                       "Descriptive; the reported-period "
+                                       "measure is pat_ttm_vs_fy_peak_pct.",
         "pat_q_at_ath": "Latest single quarter is the highest on record. Noisier "
                         "than the TTM measure, which absorbs seasonality.",
         "pat_both_at_ath": "Trailing-twelve-month AND latest-quarter PAT are "
-                           "both at record highs. TTM is the rolling-year "
-                           "measure that updates each quarter; reported annual "
-                           "PAT moves only once a year and can describe a "
-                           "period closed up to four quarters ago.",
-        "pat_fy_at_ath": "Latest reported financial year PAT is the highest on "
-                         "record. Reference only -- it updates once a year, so "
-                         "pat_ttm_at_ath is the current rolling-year measure.",
+                           "both at record highs. TTM is compared against the "
+                           "reported financial-year series; the latest quarter "
+                           "against every quarter on record. When QL1 is the "
+                           "March quarter, TTM equals FY1 and the >= test lets "
+                           "that pass -- only an earlier FY beating it fails.",
+        "pat_fy_at_ath": "Latest reported financial year PAT (FY1) is the "
+                         "highest on record. Reference only -- it updates once "
+                         "a year, whereas pat_ttm_at_ath measures the live "
+                         "trailing year against that same FY series.",
     }
     specs = cat.build_catalog(df, source_map, prov_map, notes)
     print(cat.summary(specs).to_string())

@@ -15,6 +15,7 @@ import Explorer from './modules/Explorer';
 import Quality from './modules/Quality';
 import Segment from './modules/Segment';
 import Upload from './modules/Upload';
+import Scanner from './modules/Scanner';
 
 const MODULES = [
   { id: 'pulse',    label: 'Pulse',     ready: true },
@@ -26,6 +27,7 @@ const MODULES = [
   { id: 'segment',  label: 'Sectors',   ready: true },
   { id: 'quality',  label: 'Data quality', ready: true },
   { id: 'upload',   label: 'Upload',    ready: true },
+  { id: 'scanner',  label: 'Scanner',   ready: true },
 ];
 
 function useTheme() {
@@ -138,6 +140,7 @@ function Shell() {
             <Upload onCommitted={() => window.location.reload()} />
           )}
           {view === 'quality' && <Quality />}
+          {view === 'scanner' && <Scanner />}
         </ErrorBoundary>
       </main>
     </div>

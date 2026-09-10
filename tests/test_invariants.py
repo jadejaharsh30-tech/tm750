@@ -155,29 +155,41 @@ def test_row_count_survives_the_pipeline(built):
 
 # ---------------------------------------------------- profit all-time highs
 def test_both_at_ath_is_ttm_and_quarter_not_annual(built):
-    """TTM is the rolling-year measure and updates every quarter; reported
-    annual PAT moves once a year and can describe a period closed up to four
-    quarters ago. The combined flag must therefore pair TTM with the latest
-    quarter, never annual with TTM."""
+    """The combined flag pairs the live trailing year with the latest quarter.
+
+    TTM updates every quarter and is measured against the reported
+    financial-year series; the latest quarter confirms the trend has not just
+    rolled over. Never annual paired with TTM -- FY1 is one member of the
+    series TTM is tested against, not a second horizon."""
     df = built["df"]
     expected = df["pat_ttm_at_ath"].fillna(False) & df["pat_q_at_ath"].fillna(False)
     assert (df["pat_both_at_ath"].fillna(False) == expected).all()
 
 
-def test_at_ath_flags_imply_zero_gap_from_peak(built):
+def test_at_ath_flags_imply_no_gap_below_peak(built):
+    """A set flag means nothing on record beat it.
+
+    The quarter and annual measures compare a value against a series it
+    belongs to, so at a record the gap is exactly zero. TTM is different: it
+    is compared against the reported financial years and is NOT one of them,
+    so a record sits at or ABOVE the peak. Asserting exact zero there would
+    fail for every company that has genuinely beaten its best year."""
     df = built["df"]
-    for flag, gap in [("pat_ttm_at_ath", "pat_ttm_vs_peak_pct"),
-                      ("pat_q_at_ath", "pat_q_vs_peak_pct"),
+    for flag, gap in [("pat_q_at_ath", "pat_q_vs_peak_pct"),
                       ("pat_fy_at_ath", "pat_vs_peak_pct")]:
         hit = df[df[flag].fillna(False)]
         assert (hit[gap].abs() < 0.01).all(), f"{flag} set but {gap} nonzero"
+
+    hit = df[df["pat_ttm_at_ath"].fillna(False)]
+    gap = hit["pat_ttm_vs_fy_peak_pct"]
+    assert (gap >= -0.01).all(), "pat_ttm_at_ath set but TTM below the FY peak"
 
 
 def test_loss_making_peak_is_not_an_all_time_high(built):
     """A company whose best-ever profit is a loss is not "at an all-time
     high" in any useful sense, however the arithmetic works out."""
     df = built["df"]
-    for flag, peak in [("pat_ttm_at_ath", "pat_ttm_peak"),
+    for flag, peak in [("pat_ttm_at_ath", "pat_peak_fy"),
                        ("pat_q_at_ath", "pat_peak_q"),
                        ("pat_fy_at_ath", "pat_peak_fy")]:
         hit = df[df[flag].fillna(False)]

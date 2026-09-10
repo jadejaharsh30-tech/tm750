@@ -66,7 +66,13 @@ def test_large_segments_are_split_into_several_groups(catalog):
 # Rule precedence: these were specifically at risk of matching the wrong rule.
 @pytest.mark.parametrize("column,expected", [
     ("pat_ttm_at_ath", "Records"),          # record, not TTM
-    ("pat_ttm_vs_peak_pct", "Records"),     # record, not TTM
+    ("pat_ttm_vs_fy_peak_pct", "Records"),  # record, not TTM
+    # Descriptive rolling variants are still records. If the Records rule is
+    # ever re-anchored to `_at_ath$`, this one falls through to `^pat_ttm`
+    # and lands under "Trailing twelve months".
+    ("pat_ttm_at_ath_rolling", "Records"),
+    ("pat_ttm_peak_rolling", "Records"),
+    ("pat_ttm_vs_peak_rolling_pct", "Records"),
     ("pat_ttm", "Trailing twelve months"),
     ("pat_fy_at_ath", "Records"),           # record, not Annual
     ("pat_cagr_5y_pct", "Annual"),

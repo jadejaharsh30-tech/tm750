@@ -46,6 +46,17 @@ def reshape_yearly(df: pd.DataFrame) -> pd.DataFrame:
     return long.dropna(subset=["pat"]).sort_values(["isin", "periods_ago"])
 
 
+def _quarter_at_ath(q: pd.DataFrame) -> pd.Series:
+    """Latest quarter is the highest on record.
+
+    Shared by summarise_quarterly and profit_at_ath so the two can never
+    drift apart. A loss-making peak is not an all-time high in any useful
+    sense, hence the peak > 0 requirement.
+    """
+    peak = q.max(axis=1)
+    return (q["QL1"] >= peak) & q["QL1"].notna() & (peak > 0)
+
+
 def _cagr(latest: pd.Series, earliest: pd.Series, years: float) -> pd.Series:
     """CAGR, defined only where both endpoints are positive.
 
@@ -100,20 +111,27 @@ def summarise_quarterly(df: pd.DataFrame) -> pd.DataFrame:
     q_peak = q.max(axis=1)
     out["pat_peak_q"] = q_peak
     out["pat_q_vs_peak_pct"] = ((q["QL1"] / q_peak.abs()) - 1) * 100
-    out["pat_q_at_ath"] = (q["QL1"] >= q_peak) & q["QL1"].notna() & (q_peak > 0)
+    out["pat_q_at_ath"] = _quarter_at_ath(q)
 
-    # Rolling four-quarter sums across the whole history. TTM profit at an
-    # all-time high is a cleaner signal than a single quarter, which carries
-    # whatever seasonality the business happens to have.
+    # Rolling four-quarter sums across the whole history.
+    #
+    # DESCRIPTIVE ONLY -- these must never feed pat_both_at_ath. The record
+    # test is TTM against the reported financial-year series (profit_at_ath),
+    # not against synthetic windows that straddle year ends. The two disagree:
+    # rolling windows reach back 12 years but can find a peak spanning two
+    # part-years that no reported FY ever shows, while the FY series reaches
+    # 15 years. Kept because the drawdown-from-rolling-peak reading is useful
+    # in its own right, renamed so it cannot be mistaken for the verdict.
     ttm_series = {}
     for i in range(1, QTR_PERIODS - 2):
         window = [f"QL{j}" for j in range(i, i + 4)]
         ttm_series[f"T{i}"] = q[window].sum(axis=1, min_count=4)
     ttm_all = pd.DataFrame(ttm_series, index=q.index)
     ttm_peak = ttm_all.max(axis=1)
-    out["pat_ttm_peak"] = ttm_peak
-    out["pat_ttm_vs_peak_pct"] = ((ttm_now / ttm_peak.abs()) - 1) * 100
-    out["pat_ttm_at_ath"] = (ttm_now >= ttm_peak) & ttm_now.notna() & (ttm_peak > 0)
+    out["pat_ttm_peak_rolling"] = ttm_peak
+    out["pat_ttm_vs_peak_rolling_pct"] = ((ttm_now / ttm_peak.abs()) - 1) * 100
+    out["pat_ttm_at_ath_rolling"] = (
+        (ttm_now >= ttm_peak) & ttm_now.notna() & (ttm_peak > 0))
     return out.reset_index()
 
 
@@ -162,4 +180,67 @@ def summarise_yearly(df: pd.DataFrame) -> pd.DataFrame:
         g_streak += grew.astype(int)
         alive &= grew
     out["pat_growth_streak_fy"] = g_streak
+    return out.reset_index()
+
+
+def profit_at_ath(q_df: pd.DataFrame, y_df: pd.DataFrame) -> pd.DataFrame:
+    """The record test: TTM against reported financial years, and the latest
+    quarter against every quarter on record.
+
+    Two horizons, both of which must hold:
+
+    1. TTM at ATH -- trailing twelve months (QL1+QL2+QL3+QL4, computed ONCE,
+       not rolled) compared against the reported annual series FYL1..FYL15.
+       The comparison series is therefore [TTM, FY1, FY2, ... FY15]: the live
+       rolling year measured against every completed year the company has
+       reported.
+
+    2. Quarter at ATH -- QL1 against the highest of QL1..QL48.
+
+    Why FY rather than rolling four-quarter windows: a reported financial year
+    is a real, audited period the market prices off. A synthetic window
+    spanning, say, Sep-24 to Jun-25 is not a period the company ever reported,
+    and a peak found there is an artefact of the window, not a record the
+    business set.
+
+    The March case is intentional. When QL1 is the March quarter, QL1..QL4
+    spans exactly the financial year, so TTM equals FY1 once that row lands.
+    The >= comparison lets equality pass -- being level with FY1 is not a
+    failure. It only fails if an EARLIER financial year beat it.
+
+    Returns only the columns neither summarise_ function already produces, so
+    the three merge without collision:
+        pat_ttm_at_ath, pat_ttm_vs_fy_peak_pct, pat_both_at_ath
+    """
+    q_cols = [f"QL{i}" for i in range(1, QTR_PERIODS + 1)]
+    y_cols = [f"FYL{i}" for i in range(1, FY_PERIODS + 1)]
+
+    q = _nullify_sentinels(q_df, q_cols).set_index("isin")[q_cols]
+    y = _nullify_sentinels(y_df, y_cols).set_index("isin")[y_cols]
+
+    q = q[~q.index.duplicated(keep="first")]
+    y = y[~y.index.duplicated(keep="first")]
+
+    # A company in one feed but not the other still gets a row; its missing
+    # half yields NaN, which falls through to False rather than to a verdict.
+    idx = q.index.union(y.index)
+    q = q.reindex(idx)
+    y = y.reindex(idx)
+
+    # Computed once. No rolling.
+    ttm = q[["QL1", "QL2", "QL3", "QL4"]].sum(axis=1, min_count=4)
+    fy_peak = y.max(axis=1)
+
+    out = pd.DataFrame(index=idx)
+    out["pat_ttm_vs_fy_peak_pct"] = ((ttm / fy_peak.abs()) - 1) * 100
+
+    # Requires the peak itself to be positive: a company whose best-ever year
+    # was a loss is not at a record.
+    out["pat_ttm_at_ath"] = (ttm >= fy_peak) & ttm.notna() & (fy_peak > 0)
+    out["pat_q_at_ath_"] = _quarter_at_ath(q)
+    out["pat_both_at_ath"] = (out["pat_ttm_at_ath"].fillna(False)
+                              & out["pat_q_at_ath_"].fillna(False))
+    out = out.drop(columns=["pat_q_at_ath_"])
+
+    out.index.name = "isin"
     return out.reset_index()

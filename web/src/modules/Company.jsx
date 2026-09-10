@@ -423,8 +423,8 @@ function AthBadges({ flat }) {
   if (ttm === undefined && q === undefined) return null;
 
   const items = [
-    { on: ttm, label: 'TTM PAT', gap: flat.pat_ttm_vs_peak_pct?.value,
-      note: 'rolling year' },
+    { on: ttm, label: 'TTM PAT', gap: flat.pat_ttm_vs_fy_peak_pct?.value,
+      note: 'vs financial years' },
     { on: q, label: 'Latest quarter', gap: flat.pat_q_vs_peak_pct?.value,
       note: 'most recent' },
     { on: fy, label: 'Annual PAT', gap: flat.pat_vs_peak_pct?.value,
