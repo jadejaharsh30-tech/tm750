@@ -10,6 +10,7 @@ import { useCatalog } from '../lib/catalog';
 import { formatValue, signClass } from '../lib/format';
 import { ErrorState, Loading, RankBar, TierChip } from '../components/ui';
 import Info from '../components/Info';
+import ExportButton from '../components/ExportButton';
 
 const ID = ['symbol', 'name', 'cap_tier'];
 
@@ -186,6 +187,16 @@ export default function Grid({ onOpenCompany }) {
             <button className="btn" onClick={() => setPicker((p) => !p)}>
               {picker ? 'Done' : 'Columns'}
             </button>
+            <ExportButton
+              columns={columns}
+              filters={tier ? [{ field: 'cap_tier', op: 'eq', value: tier }] : []}
+              sort={sort}
+              filename={`tm750-grid-${custom ? 'custom' : view}`}
+              sheetTitle={custom ? 'Custom' : (activeView?.label ?? 'Grid')}
+              context={`Grid \u00b7 ${custom ? 'custom columns'
+                        : (activeView?.label ?? view)}`
+                       + (tier ? ` \u00b7 ${tier} cap only` : '')}
+              disabled={!rows} />
           </div>
         </div>
         <div className="ghead-sub">

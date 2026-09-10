@@ -16,6 +16,7 @@ import { formatValue, pctSigned, signClass } from '../lib/format';
 import {
   Empty, ErrorState, Loading, RankBar, Stat, TierChip,
 } from '../components/ui';
+import ExportButton from '../components/ExportButton';
 
 const DIMS = [
   { id: 'sector', label: 'Sector', field: 'sector' },
@@ -130,6 +131,16 @@ export default function Segment({ dim: initialDim = 'sector',
                 </option>
               ))}
             </select>
+            {value && (
+              <ExportButton
+                columns={COLUMNS}
+                filters={[{ field, op: 'eq', value }]}
+                sort={sort}
+                filename={`tm750-${dim}-${value}`}
+                sheetTitle={String(value).slice(0, 28)}
+                context={`${DIMS.find((d) => d.id === dim)?.label} \u00b7 ${value}`}
+                disabled={!rows} />
+            )}
           </div>
         </div>
       </header>

@@ -3,9 +3,11 @@
    nav always tells the truth about what exists. */
 import { useEffect, useMemo, useState } from 'react';
 import { CatalogProvider, useCatalog } from './lib/catalog';
+import { ProfitProvider } from './lib/profit';
 import { CompanySearch, ErrorState, Loading } from './components/ui';
 import ErrorBoundary from './components/ErrorBoundary';
 import SnapshotPicker from './components/SnapshotPicker';
+import ProfitFetch from './components/ProfitFetch';
 import Pulse from './modules/Pulse';
 import Grid from './modules/Grid';
 import Company from './modules/Company';
@@ -108,6 +110,7 @@ function Shell() {
         </div>
 
         <div className="nav-right">
+          <ProfitFetch />
           <SnapshotPicker snapshots={catalog.snapshots ?? []} />
           <CompanySearch onPick={openCompany} />
           <button className="btn icon" onClick={toggleTheme}
@@ -150,7 +153,9 @@ function Shell() {
 export default function App() {
   return (
     <CatalogProvider>
-      <Shell />
+      <ProfitProvider>
+        <Shell />
+      </ProfitProvider>
     </CatalogProvider>
   );
 }

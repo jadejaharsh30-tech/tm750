@@ -10,12 +10,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import { Empty, ErrorState, Loading } from '../components/ui';
+import { ProfitFreshness } from '../components/ProfitFetch';
 
 const SOURCE_LABEL = {
   tradingview: 'TradingView export',
   screener: 'Screener.in export',
-  profit_q: 'Quarterly profit workbook',
-  profit_y: 'Annual profit workbook',
+  profit_q: 'Quarterly profit workbook (optional)',
+  profit_y: 'Annual profit workbook (optional)',
 };
 
 const DAILY = new Set(['tradingview', 'screener']);
@@ -92,6 +93,8 @@ export default function Upload({ onCommitted }) {
         </div>
       </header>
 
+      <ProfitFreshness context="upload" />
+
       {/* ------------------------------------------------------- dropzone */}
       <div
         className={`dropzone ${dragging ? 'over' : ''}`}
@@ -108,9 +111,10 @@ export default function Upload({ onCommitted }) {
         <div className="dropzone-inner">
           <strong>Drop today's export files here</strong>
           <span className="muted">
-            Any subset. Missing sources carry forward from the last snapshot
-            that had them — the profit workbooks are quarterly, so a daily
-            upload is usually just the TradingView file.
+            Any subset. Profit now comes from the Profit button in the
+            header, so a normal upload is just the TradingView and Screener
+            exports. Dropping a profit workbook here still works and
+            overrides the fetched data for this snapshot.
           </span>
         </div>
       </div>

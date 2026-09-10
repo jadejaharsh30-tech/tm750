@@ -6,11 +6,13 @@
    a recurring one. */
 import { useCallback, useEffect, useState } from 'react';
 import { scannerApi } from '../../api/scanner';
+import { useProfitFeed, stampText } from '../../lib/profit';
 import { ErrorState, Loading } from '../../components/ui';
 
 export default function UniverseUpload() {
   const [uni, setUni] = useState(null);
   const [profit, setProfit] = useState(null);
+  const feed = useProfitFeed();
   const [error, setError] = useState(null);
   const [report, setReport] = useState(null);
   const [busy, setBusy] = useState(null);
@@ -33,14 +35,21 @@ export default function UniverseUpload() {
     } catch (e) { setError(e); } finally { setBusy(null); }
   };
 
+  /* One fetch, both systems. This used to call the scanner's own refresh,
+     which left the platform's profit workbooks untouched and free to drift.
+     It now goes through the shared feed, so clicking here and clicking the
+     Profit button in the header do exactly the same thing. */
   const fetchProfit = async () => {
-    setBusy('profit'); setError(null);
+    setError(null);
     try {
-      const out = await scannerApi.refreshProfit();
+      const out = await feed.fetchNow();
+      const n = out?.companies_y ?? out?.companies_q ?? 0;
       setReport({ profitMsg:
-        `Fetched ${out.companies} companies in ${out.seconds}s.` });
+        `Fetched ${Number(n).toLocaleString('en-IN')} companies in `
+        + `${out?.seconds ?? '?'}s. Written to both the scanner and the `
+        + `platform's profit workbooks.` });
       load();
-    } catch (e) { setError(e); } finally { setBusy(null); }
+    } catch (e) { setError(e); }
   };
 
   const mapOne = async (symbol) => {
@@ -87,18 +96,24 @@ export default function UniverseUpload() {
         <p className="subtle tight">
           Pulled straight from the two source sheets. The verdict compares the
           trailing twelve months against every reported financial year, so both
-          feeds are needed.
+          feeds are needed. One fetch now feeds both the scanner and the
+          tm750 platform — the same button sits in the header.
         </p>
         <div className="uni-row">
           <button className="btn primary" onClick={fetchProfit}
-                  disabled={busy === 'profit'}>
-            {busy === 'profit' ? 'Fetching\u2026' : 'Fetch latest profit data'}
+                  disabled={feed.busy}>
+            {feed.busy ? 'Fetching\u2026' : 'Fetch latest profit data'}
           </button>
           <span className="subtle num">
-            {profit?.companies
-              ? `${profit.companies.toLocaleString('en-IN')} companies, `
-                + `fetched ${profit.fetched_at?.replace('T', ' ').slice(0, 16)}`
-              : 'Never fetched'}
+            {feed.status?.companies_y || feed.status?.companies_q
+              ? `${Number(feed.status.companies_y
+                          ?? feed.status.companies_q).toLocaleString('en-IN')}`
+                + ` companies, fetched `
+                + `${stampText(feed.status.fetched_at)}`
+              : profit?.companies
+                ? `${profit.companies.toLocaleString('en-IN')} companies, `
+                  + `fetched ${stampText(profit.fetched_at)}`
+                : 'Never fetched'}
           </span>
         </div>
       </div>

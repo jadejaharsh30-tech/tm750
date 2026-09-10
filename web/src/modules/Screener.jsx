@@ -13,6 +13,7 @@ import { useCatalog } from '../lib/catalog';
 import { formatValue, signClass } from '../lib/format';
 import { Empty, ErrorState, Loading, RankBar, TierChip } from '../components/ui';
 import Info from '../components/Info';
+import ExportButton from '../components/ExportButton';
 
 /* Operator vocabulary per column type. Offering "contains" on a number or
    "between" on a boolean is how a builder starts producing 422s. */
@@ -195,6 +196,16 @@ export default function Screener({ onOpenCompany }) {
                 Clear
               </button>
             )}
+            <ExportButton
+              columns={RESULT_COLUMNS}
+              filters={filters.filter(isComplete)}
+              sort={sort}
+              filename="tm750-screen"
+              sheetTitle="Screen"
+              context={active > 0
+                ? `Screener \u00b7 ${active} filter${active > 1 ? 's' : ''}`
+                : 'Screener \u00b7 no filters'}
+              disabled={!rows} />
           </div>
         </div>
       </header>

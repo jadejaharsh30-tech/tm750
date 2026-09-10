@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { ErrorState, Loading } from '../components/ui';
+import ProfitCoverage from '../components/ProfitCoverage';
 
 export default function Quality() {
   const [q, setQ] = useState(null);
@@ -42,6 +43,8 @@ export default function Quality() {
           <h1>Data quality</h1>
         </div>
       </header>
+
+      <ProfitCoverage />
 
       <section className="stat-row">
         <QStat label="Companies" value={q.universe} />

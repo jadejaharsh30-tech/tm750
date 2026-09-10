@@ -19,8 +19,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-from . import snapshots
-from .config import CURATED, DAILY_SOURCES, EXPECTED_UNIVERSE, SOURCES
+from . import profit_feed, snapshots
+from .config import (CARRY_FORWARD_SOURCES, CURATED, DAILY_SOURCES,
+                     EXPECTED_UNIVERSE, SOURCES)
 from .snapshots import SnapshotError
 
 
@@ -118,7 +119,8 @@ def add(paths: list[Path] | None = None, snapshot_date: str | None = None,
         allow_duplicate: bool = False, replace: bool = False,
         supplied: dict[str, Path] | None = None) -> dict:
     """Build and commit one snapshot. Returns its manifest."""
-    files = supplied if supplied is not None else classify(list(paths or []))
+    files = dict(supplied) if supplied is not None \
+        else classify(list(paths or []))
     if not files:
         raise SnapshotError("No files supplied.")
 
@@ -130,6 +132,26 @@ def add(paths: list[Path] | None = None, snapshot_date: str | None = None,
         raise SnapshotError(
             f"Snapshot {snap} already exists. Re-run with replace to rebuild "
             f"it, or supply a different date.")
+
+    # Profit now normally arrives from the API rather than as an uploaded
+    # workbook. Precedence is deliberate and in this order:
+    #   1. a file the user actually uploaded  (the Q4 fallback -- an explicit
+    #      upload always wins, which is what makes it a usable escape hatch)
+    #   2. the most recent global fetch
+    #   3. carry-forward from the previous snapshot (existing behaviour)
+    feed = profit_feed.latest_paths()
+    if feed:
+        for key, path in feed.items():
+            if key not in files:
+                files[key] = path
+        info = profit_feed.status()
+        if info.get("stale"):
+            print(f"  ! profit feed was last fetched {info.get('fetched_at')} "
+                  f"-- not today. Run a fetch first if you want current "
+                  f"profit data in this snapshot.")
+    elif not any(k in files for k in CARRY_FORWARD_SOURCES):
+        print("  ! no profit fetch found and no profit workbook supplied -- "
+              "falling back to carry-forward from the previous snapshot.")
 
     resolved = snapshots.resolve_sources(files)
 
