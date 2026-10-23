@@ -21,7 +21,8 @@ from pathlib import Path
 
 from . import profit_feed, snapshots
 from .config import (CARRY_FORWARD_SOURCES, CURATED, DAILY_SOURCES,
-                     EXPECTED_UNIVERSE, SOURCES)
+                     EXPECTED_UNIVERSE, SOURCES, UNIVERSE_MAX,
+                     UNIVERSE_MIN)
 from .snapshots import SnapshotError
 
 
@@ -190,12 +191,16 @@ def add(paths: list[Path] | None = None, snapshot_date: str | None = None,
                    out_dir=stage_out, skip_duckdb=True)
     df = result["df"]
 
-    if len(df) != EXPECTED_UNIVERSE:
+    if not UNIVERSE_MIN <= len(df) <= UNIVERSE_MAX:
         shutil.rmtree(staging, ignore_errors=True)
         raise SnapshotError(
-            f"Build produced {len(df)} companies, expected {EXPECTED_UNIVERSE}. "
-            f"Nothing was committed. Check the export covers the full "
-            f"Nifty Total Market universe.")
+            f"Build produced {len(df)} companies, expected "
+            f"{UNIVERSE_MIN}-{UNIVERSE_MAX}. Nothing was committed. Check the "
+            f"export covers the full Nifty Total Market universe.")
+    if len(df) != EXPECTED_UNIVERSE:
+        print(f"  ! snapshot holds {len(df)} companies, "
+              f"{EXPECTED_UNIVERSE - len(df)} short of the nominal "
+              f"{EXPECTED_UNIVERSE}.")
 
     target = snapshots.snapshot_dir(snap)
     backup = None

@@ -10,7 +10,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from .config import EXPECTED_UNIVERSE, RAW, SOURCE_PATTERNS, SOURCES
+from .config import (EXPECTED_UNIVERSE, RAW, SOURCE_PATTERNS, SOURCES,
+                     UNIVERSE_MAX, UNIVERSE_MIN)
 
 
 class IngestError(RuntimeError):
@@ -45,10 +46,18 @@ def resolve_source(key: str, raw_dir: Path | None = None) -> Path:
 
 
 def load_tradingview(raw_dir: Path | None = None) -> pd.DataFrame:
-    """Base universe. Defines which 750 companies exist."""
+    """Base universe. Defines which companies exist for this snapshot."""
     df = pd.read_csv(resolve_source("tradingview", raw_dir))
-    _require(len(df) == EXPECTED_UNIVERSE,
-             f"tradingview: expected {EXPECTED_UNIVERSE} rows, got {len(df)}")
+    _require(UNIVERSE_MIN <= len(df) <= UNIVERSE_MAX,
+             f"tradingview: expected {UNIVERSE_MIN}-{UNIVERSE_MAX} rows, "
+             f"got {len(df)}")
+    if len(df) < EXPECTED_UNIVERSE:
+        # Worth saying out loud every time. A quietly shrinking universe is
+        # how a truncated export gets mistaken for an index reshuffle.
+        print(f"  ! tradingview has {len(df)} rows, "
+              f"{EXPECTED_UNIVERSE - len(df)} short of the nominal "
+              f"{EXPECTED_UNIVERSE}. Expected after an index review, or when "
+              f"the export omits REITs/InvITs; otherwise check the export.")
     _require("ISIN" in df.columns, "tradingview: ISIN column missing")
     _require(df["ISIN"].notna().all(), "tradingview: null ISIN present")
     _require(df["ISIN"].is_unique, "tradingview: duplicate ISIN")

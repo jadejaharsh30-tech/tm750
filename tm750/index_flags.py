@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-from .config import CAP_TIER_EXPECTED, CAP_TIER_RULES, to_snake
+from .config import (CAP_TIER_EXPECTED, CAP_TIER_RULES,
+                     CAP_TIER_SLACK, EXPECTED_UNIVERSE, to_snake)
 
 # ---------------------------------------------------------------- groupings
 FACTOR_INDICES = {
@@ -88,16 +89,39 @@ def build_flags(df: pd.DataFrame, col: str = "index_tags") -> pd.DataFrame:
     return out, all_tags
 
 
-def validate_tiers(tiers: pd.Series) -> None:
-    """Cap tiers must land on exactly 100 / 150 / 250 / 250."""
+def validate_tiers(tiers: pd.Series, slack: int = CAP_TIER_SLACK) -> None:
+    """Cap tiers must stay close to 100 / 150 / 250 / 250.
+
+    Not exact, deliberately. The four tier indices sum to the full universe,
+    so a single company absent from the export -- a REIT the TradingView stock
+    screener does not emit, a name suspended mid-review -- makes an exact check
+    fail on whichever tier it belonged to, even though nothing is wrong.
+
+    A tier may run short by as many companies as are genuinely missing from the
+    universe, plus `slack` for ordinary churn between index reviews. Running
+    over is held to `slack` alone: an unexpectedly large tier means membership
+    rules changed or a company was double-counted, which no shortfall explains.
+    """
     counts = tiers.value_counts().to_dict()
+    shortfall = max(0, EXPECTED_UNIVERSE - int(tiers.size))
+
     for tier, expected in CAP_TIER_EXPECTED.items():
         got = counts.get(tier, 0)
-        if got != expected:
+        low, high = expected - shortfall - slack, expected + slack
+        if not low <= got <= high:
             raise ValueError(
-                f"cap tier '{tier}': expected {expected}, got {got}. "
-                "Index membership rules may have changed upstream."
+                f"cap tier '{tier}': expected {expected} "
+                f"(accepting {low}-{high} with {shortfall} missing from the "
+                f"universe), got {got}. Index membership rules may have "
+                f"changed upstream."
             )
+
     unclassified = counts.get("Unclassified", 0)
+    if unclassified > slack:
+        raise ValueError(
+            f"{unclassified} companies fell outside all cap tiers")
     if unclassified:
-        raise ValueError(f"{unclassified} companies fell outside all cap tiers")
+        # A handful is survivable -- a newly added name whose index tags have
+        # not propagated yet -- but it is never silently fine.
+        print(f"  ! {unclassified} companies fell outside all cap tiers "
+              f"and are marked Unclassified")

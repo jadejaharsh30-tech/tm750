@@ -11,7 +11,8 @@ import pandas as pd
 
 from . import catalog as cat
 from . import clean, derive, history, index_flags, ingest, quality
-from .config import CURATED, EXPECTED_UNIVERSE, SNAPSHOT_DATE
+from .config import (CURATED, EXPECTED_UNIVERSE, SNAPSHOT_DATE,
+                     UNIVERSE_MAX, UNIVERSE_MIN)
 
 
 def _section(title: str) -> None:
@@ -41,7 +42,12 @@ def build(write: bool = True, snapshot_date: str | None = None,
 
     _section("2. CLEAN")
     tv = src["tradingview"]
-    tv, ledger = clean.drop_dead_columns(tv, EXPECTED_UNIVERSE)
+    # Coverage is measured against the companies actually present, not the
+    # nominal index size. Using the constant here would understate every
+    # column's coverage whenever the export is short, and could drop a fully
+    # populated column for falling under the threshold on a denominator that
+    # does not exist.
+    tv, ledger = clean.drop_dead_columns(tv, len(tv))
     print(f"  dropped {len(ledger)} columns:")
     for reason, grp in ledger.groupby("reason"):
         print(f"    {reason:14s} {len(grp):3d}")
@@ -92,7 +98,8 @@ def build(write: bool = True, snapshot_date: str | None = None,
     df = df.merge(history.profit_at_ath(src["profit_q"], src["profit_y"]),
                   on="isin", how="left")
     df["pat_both_at_ath"] = df["pat_both_at_ath"].fillna(False)
-    assert len(df) == EXPECTED_UNIVERSE, f"row count drifted: {len(df)}"
+    assert UNIVERSE_MIN <= len(df) <= UNIVERSE_MAX, \
+        f"row count drifted: {len(df)}"
     # DuckDB derives this from the Hive partition path when reading the
     # parquet, so it must exist in the catalog or the two disagree by one.
     df.insert(0, "snapshot_date", snap)

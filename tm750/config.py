@@ -38,7 +38,15 @@ CARRY_FORWARD_SOURCES = ("profit_q", "profit_y")
 
 JOIN_KEY = "isin"
 SNAPSHOT_DATE = "2026-08-20"
+# The Nifty Total Market index nominally holds 750 names, but the TradingView
+# stock screener does not emit REITs and InvITs, so a perfectly good export can
+# arrive a few short -- and the figure moves again at every index review. The
+# build therefore accepts a band and says what is missing, rather than demanding
+# a number it has no way to guarantee. EXPECTED_UNIVERSE stays as the nominal
+# size, used for reporting the gap, never as a pass/fail test on its own.
 EXPECTED_UNIVERSE = 750
+UNIVERSE_MIN = 735   # fewer than this and the export is genuinely incomplete
+UNIVERSE_MAX = 750   # more than this and something is duplicated
 
 # ------------------------------------------------------- exclusion policy
 # Columns dropped because coverage is too low to support honest analysis.
@@ -89,7 +97,12 @@ CAP_TIER_RULES = [
     ("Nifty MicroCap 250", "Micro"),
 ]
 CAP_TIER_ORDER = ["Large", "Mid", "Small", "Micro"]
+# Nominal constituent counts of the four index tiers. These sum to 750, which
+# is why an export missing a few names fails an exact check on every tier at
+# once. A tier may therefore run short by as many companies as are actually
+# missing from the universe, plus the slack below for ordinary index churn.
 CAP_TIER_EXPECTED = {"Large": 100, "Mid": 150, "Small": 250, "Micro": 250}
+CAP_TIER_SLACK = 5
 
 # ------------------------------------------------------- sector handling
 # Metrics that are structurally meaningless for banks / NBFCs / insurers.
